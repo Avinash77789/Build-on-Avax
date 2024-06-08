@@ -1,0 +1,61 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+
+contract StockMarketMembership is ERC20, Ownable {
+    enum MembershipLevel { STANDARD, ADVANCED, ELITE }
+
+    event MembershipActivated(address indexed account, MembershipLevel membershipLevel, uint256 membershipFee);
+
+    mapping(address => MembershipLevel) public memberLevels;
+
+    uint256 public constant Standard_fee = 150;
+    uint256 public constant Advanced_fee = 300;
+    uint256 public constant Elite_fee = 600;
+
+    constructor(address initialOwner) ERC20("TRADER", "TRD") Ownable(initialOwner) {}
+
+    function mintTokens(address to, uint256 amount) external onlyOwner {
+        _mint(to, amount);
+    }
+
+    function BurnTokens(uint256 amount) external {
+        require(amount > 0, "Amount to burn must be greater than zero");
+        require(balanceOf(msg.sender) >= amount, "Insufficient balance");
+        _burn(msg.sender, amount);
+    }
+
+    function activateMembership(uint8 level) external {
+        require(level >= 1 && level <= 3, "Invalid membership level");
+
+        MembershipLevel membership;
+        uint256 fee;
+
+        if (level == 1) {
+            require(balanceOf(msg.sender) >= Standard_fee, "Insufficient balance for membership");
+            membership = MembershipLevel.STANDARD;
+            fee = Standard_fee;
+        } else if (level == 2) {
+            require(balanceOf(msg.sender) >= Advanced_fee, "Insufficient balance for membership");
+            membership = MembershipLevel.ADVANCED;
+            fee = Advanced_fee;
+        } else {
+            require(balanceOf(msg.sender) >= Elite_fee, "Insufficient balance for membership");
+            membership = MembershipLevel.ELITE;
+            fee = Elite_fee;
+        }
+
+        _burn(msg.sender, fee);
+        memberLevels[msg.sender] = membership;
+        emit MembershipActivated(msg.sender, membership, fee);
+    }
+
+    function transferMembershipTokens(address to, uint256 amount) external {
+        require(to != address(0), "Invalid recipient address");
+        require(balanceOf(msg.sender) >= amount, "Insufficient balance to transfer");
+        _transfer(msg.sender, to, amount);
+    }
+}
