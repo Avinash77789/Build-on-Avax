@@ -3,59 +3,64 @@ pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
-contract StockMarketMembership is ERC20, Ownable {
-    enum MembershipLevel { STANDARD, ADVANCED, ELITE }
+contract IndoorGameToken is ERC20, Ownable {
+    enum GameLevel { Beginner, Intermediate, Advanced }
 
-    event MembershipActivated(address indexed account, MembershipLevel membershipLevel, uint256 membershipFee);
+    event GameTokenAcquired(
+        address indexed player,
+        GameLevel level,
+        uint256 tokenCost
+    );
 
-    mapping(address => MembershipLevel) public memberLevels;
+    mapping(address => GameLevel) public playerLevels;
 
-    uint256 public constant Standard_fee = 150;
-    uint256 public constant Advanced_fee = 300;
-    uint256 public constant Elite_fee = 600;
+    uint256 public constant BeginnerTokenCost = 500;
+    uint256 public constant IntermediateTokenCost = 750;
+    uint256 public constant AdvancedTokenCost = 1000;
 
-    constructor(address initialOwner) ERC20("TRADER", "TRD") Ownable(initialOwner) {}
+    constructor(address initialOwner) ERC20("GameTokens", "GAMETOK") Ownable(initialOwner) {}
 
-    function mintTokens(address to, uint256 amount) external onlyOwner {
+    function mintTokens(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);
     }
 
-    function BurnTokens(uint256 amount) external {
+    function burnTokens(uint256 amount) public {
         require(amount > 0, "Amount to burn must be greater than zero");
-        require(balanceOf(msg.sender) >= amount, "Insufficient balance");
+        require(balanceOf(msg.sender) >= amount, "Insufficient funds to burn tokens");
         _burn(msg.sender, amount);
     }
 
-    function activateMembership(uint8 level) external {
-        require(level >= 1 && level <= 3, "Invalid membership level");
+    function RedeeemGameToken(uint8 levelNumber) public {
+        require(levelNumber >= 1 && levelNumber <= 3, "Invalid game level");
 
-        MembershipLevel membership;
-        uint256 fee;
+        GameLevel level;
+        uint256 tokenCost;
 
-        if (level == 1) {
-            require(balanceOf(msg.sender) >= Standard_fee, "Insufficient balance for membership");
-            membership = MembershipLevel.STANDARD;
-            fee = Standard_fee;
-        } else if (level == 2) {
-            require(balanceOf(msg.sender) >= Advanced_fee, "Insufficient balance for membership");
-            membership = MembershipLevel.ADVANCED;
-            fee = Advanced_fee;
+        if (levelNumber == 1) {
+            require(balanceOf(msg.sender) >= BeginnerTokenCost, "Insufficient funds for token acquisition");
+            level = GameLevel.Beginner;
+            tokenCost = BeginnerTokenCost;
+            _burn(msg.sender, tokenCost);
+        } else if (levelNumber == 2) {
+            require(balanceOf(msg.sender) >= IntermediateTokenCost, "Insufficient funds for token acquisition");
+            level = GameLevel.Intermediate;
+            tokenCost = IntermediateTokenCost;
+            _burn(msg.sender, tokenCost);
         } else {
-            require(balanceOf(msg.sender) >= Elite_fee, "Insufficient balance for membership");
-            membership = MembershipLevel.ELITE;
-            fee = Elite_fee;
+            require(balanceOf(msg.sender) >= AdvancedTokenCost, "Insufficient funds for token acquisition");
+            level = GameLevel.Advanced;
+            tokenCost = AdvancedTokenCost;
+            _burn(msg.sender, tokenCost);
         }
 
-        _burn(msg.sender, fee);
-        memberLevels[msg.sender] = membership;
-        emit MembershipActivated(msg.sender, membership, fee);
+        playerLevels[msg.sender] = level;
+        emit GameTokenAcquired(msg.sender, level, tokenCost);
     }
 
-    function transferMembershipTokens(address to, uint256 amount) external {
+    function transferGameTokens(address to, uint256 amount) external {
         require(to != address(0), "Invalid recipient address");
-        require(balanceOf(msg.sender) >= amount, "Insufficient balance to transfer");
+        require(balanceOf(msg.sender) >= amount, "Insufficient funds to transfer tokens");
         _transfer(msg.sender, to, amount);
     }
 }
