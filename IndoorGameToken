@@ -1,0 +1,55 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract IndoorGameToken is ERC20, Ownable {
+    enum GameLevel { Beginner, Intermediate, Advanced }
+
+    event GameTokenAcquired(
+        address indexed player,
+        string itemName,
+        uint256 tokenCost
+    );
+
+    mapping(address => GameLevel) public playerLevels;
+
+    // Mapping of item names to their costs
+    mapping(string => uint256) public items;
+
+    constructor(address initialOwner) ERC20("GameTokens", "GAMETOK") Ownable(initialOwner) {
+        // Add available items with their costs
+        items["Beginner Item "] = 500;
+        items["Intermediate Item"] = 750;
+        items["Advanced Item"] = 1000;
+    }
+
+    function mintTokens(address to, uint256 amount) public onlyOwner {
+        _mint(to, amount);
+    }
+
+    function burnTokens(uint256 amount) public {
+        require(amount > 0, "Amount to burn must be greater than zero");
+        require(balanceOf(msg.sender) >= amount, "Insufficient funds to burn tokens");
+        _burn(msg.sender, amount);
+    }
+
+    function redeemGameToken(string memory itemName) public {
+        uint256 tokenCost = items[itemName];
+        require(tokenCost > 0, "Item does not exist or cost is incorrect");
+        require(balanceOf(msg.sender) >= tokenCost, "Insufficient funds for token acquisition");
+
+        // Burn the tokens for the specified item
+        _burn(msg.sender, tokenCost);
+
+        // Emit the event for item acquisition
+        emit GameTokenAcquired(msg.sender, itemName, tokenCost);
+    }
+
+    function transferGameTokens(address to, uint256 amount) external {
+        require(to != address(0), "Invalid recipient address");
+        require(balanceOf(msg.sender) >= amount, "Insufficient funds to transfer tokens");
+        _transfer(msg.sender, to, amount);
+    }
+}
